@@ -1,0 +1,45 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: İşlemleri çalıştır/checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17'yi kurun
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Android SDK'yı kurun
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle'ı kurun
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Projeyi zip'ten çıkarın
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Error: repo kökünde .zip dosyası bulunamadı."
+            exit 1
+          fi
+          echo "Açılıyor: $ZIP_FILE"
+          unzip -o "$ZIP_FILE"
+
+      - name: Hata ayıklama APK'sını oluşturun
+        working-directory: ./JarvisAndroid
+        run: gradle assembleDebug
+
+      - name: APK yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-debug-apk
+          path: JarvisAndroid/app/build/outputs/apk/debug/*.apk
